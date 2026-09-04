@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Site-wide configuration (singleton, editable from the admin panel).
+// id is fixed to "singleton" — there is always exactly one row.
+model SiteConfig {
+  id                  String   @id @default("singleton")
+  siteName            String   @default("Gap League")
+  locale              String   @default("ja")
+  // Scoring rule (site-level). Total = sum over teams of:
+  //   exact match (predicted == actual) -> scoreExactMatch
+  //   otherwise                         -> abs(diff) * scoreDiffMultiplier
+  scoreExactMatch     Int      @default(-2)
+  scoreDiffMultiplier Int      @default(1)
+  // Leagues offered on this site (football-data.org competition codes)
+  enabledLeagues      String[] @default(["PL", "PD", "SA", "BL1", "FL1"])
+
+  // --- 認証設定（管理画面から編集）---
+  // すべて null 可・既定値なし。null は「環境変数にフォールバック」を意味する。
+  // 既定値を入れると、この行が既に存在する環境でマイグレーション直後に
+  // 認証方式が勝手に切り替わり、管理者がログインできなくなる。
+  /// "password" | "google" | "both"。null = env NEXT_PUBLIC_AUTH_MODE
+  authMode              String?
+  /// 自己登録（ゲスト登録）の許可。null = env NEXT_PUBLIC_ALLOW_SIGNUP
+  allowSignup           Boolean?
+  /// Google OAuth クライアントID。空文字・null = env GOOGLE_CLIENT_ID
+  googleClientId        String?
+  /// Google OAuth クライアントシークレット（AES-256-GCM で暗号化して保存）。
+  /// 復号できないときは未設定として扱い、env GOOGLE_CLIENT_SECRET に戻す。
+  googleClientSecretEnc String?
+  /// Google ログインを許可するメールドメイン。空文字 = 制限なし。null = env ALLOWED_EMAIL_DOMAIN
+  allowedEmailDomain    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// App models
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  isAdmin        Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  displayName    String?
+  favoriteClubId String?
+  profileSetup   Boolean   @default(false)
+  // password モード用。google モードのユーザーは null のまま。
+  passwordHash   String?
+
+  accounts     Account[]
+  sessions     Session[]
+  favoriteClub Team?             @relation("FavoriteClub", fields: [favoriteClubId], references: [id])
+  predictions  Prediction[]
+  scores       Score[]
+  invitations  InvitationToken[]
+  createdAt    DateTime          @default(now())
+}
+
+// 管理者が発行する招待トークン。参加者は招待URLから初回パスワードを設定する。
+model InvitationToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Season {
+  id                 String   @id @default(cuid())
+  leagueCode         String   @default("PL")
+  seasonYear         Int
+  name               String
+  /// 順位予想の締切
+  predictionDeadline DateTime
+  /// 得点予想の締切。未設定なら predictionDeadline と同じ扱い。
+  /// 順位予想より後ろに置けるようにするために分けてある。
+  scorerDeadline     DateTime?
+  isLocked           Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  // 終盤ネタバレ防止用。残り5節以下では順位を非表示にし、
+  // 最終節完了後に管理者が「結果を開示」を押したら true になる。
+  resultsRevealed    Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  seasonTeams SeasonTeam[]
+  predictions Prediction[]
+  standings   Standing[]
+  scores      Score[]
+  snapshots   StandingSnapshot[]
+}
+
+model Team {
+  id         String  @id @default(cuid())
+  apiTeamId  Int     @unique
+  name       String
+  shortName  String?
+  tla        String?
+  crestUrl   String?
+  leagueCode String  @default("PL")
+
+  seasonTeams       SeasonTeam[]
+  players           Player[]
+  scorerPicks       PredictionScorer[]
+  favoriteUsers     User[]             @relation("FavoriteClub")
+  predictionDetails PredictionDetail[]
+  standings         Standing[]
+  standingSnapshots StandingSnapshot[]
+}
+
+model SeasonTeam {
+  seasonId String
+  teamId   String
+  season   Season @relation(fields: [seasonId], references: [id])
+  team     Team   @relation(fields: [teamId], references: [id])
+
+  @@id([seasonId, teamId])
+}
+
+model Prediction {
+  id        String   @id @default(cuid())
+  userId    String
+  seasonId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id])
+  season  Season             @relation(fields: [seasonId], references: [id])
+  details PredictionDetail[]
+  scorers PredictionScorer[]
+
+  @@unique([userId, seasonId])
+}
+
+model PredictionDetail {
+  predictionId  String
+  teamId        String
+  predictedRank Int
+  comment       String?
+
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id])
+
+  @@id([predictionId, teamId])
+}
+
+model Standing {
+  id           String   @id @default(cuid())
+  seasonId     String
+  teamId       String
+  actualRank   Int
+  played       Int      @default(0)
+  won          Int      @default(0)
+  drawn        Int      @default(0)
+  lost         Int      @default(0)
+  points       Int      @default(0)
+  goalsFor     Int      @default(0)
+  goalsAgainst Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  season Season @relation(fields: [seasonId], references: [id])
+  team   Team   @relation(fields: [teamId], references: [id])
+
+  @@unique([seasonId, teamId])
+}
+
+model Score {
+  id           String   @id @default(cuid())
+  userId       String
+  seasonId     String
+  totalPoints  Int
+  calculatedAt DateTime @default(now()) @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id])
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@unique([userId, seasonId])
+}
+
+model StandingSnapshot {
+  id         String   @id @default(cuid())
+  seasonId   String
+  teamId     String
+  matchday   Int
+  actualRank Int
+  played     Int
+  points     Int      @default(0)
+  syncedAt   DateTime @default(now())
+
+  season Season @relation(fields: [seasonId], references: [id])
+  team   Team   @relation(fields: [teamId], references: [id])
+
+  @@unique([seasonId, teamId, matchday])
+}
+
+/// 得点予想の候補になる選手。football-data.org のスカッドから同期する。
+/// crawler 側の選手データは20クラブ中11クラブ分しか無いため、上流から直接取る。
+model Player {
+  id          String  @id @default(cuid())
+  apiPlayerId Int     @unique
+  name        String
+  position    String?
+  teamId      String
+  updatedAt   DateTime @updatedAt
+
+  team    Team               @relation(fields: [teamId], references: [id])
+  picks   PredictionScorer[]
+
+  @@index([teamId])
+}
+
+/// 得点予想の指名。1予想につき最大3人。
+/// ルールは「指名した3人の合計得点が多いほど上位」。得点数の予想はしないので
+/// 選手だけを持つ。Prediction に相乗りするので締切・一意制約は順位予想と共通。
+/// 既存の予想はこの行を持たず、その場合の加点は 0（＝従来どおりのスコア）。
+model PredictionScorer {
+  predictionId   String
+  playerId       String
+  /// 表示順（1..3）。同じ選手を複数枠に入れられないよう主キーは playerId 側で縛る
+  slot           Int
+  /// どのクラブの一覧から選んだか。上流が移籍前後の両クラブに同じ選手を載せることがあり
+  /// （例: Bruno Guimarães が Arsenal と Newcastle の双方に在籍）、
+  /// Player.teamId は「最後に同期したクラブ」になってしまう。
+  /// 指名時に見えていたクラブを正として表示する。
+  pickedTeamId   String?
+
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id])
+  pickedTeam Team?      @relation(fields: [pickedTeamId], references: [id])
+
+  @@id([predictionId, playerId])
+  @@unique([predictionId, slot])
+}

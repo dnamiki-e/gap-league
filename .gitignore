@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+.next/
+out/
+build/
+
+# Env files
+.env.local
+.env*.local
+.env
+
+# Prisma
+# NOTE: prisma/migrations/ は配布物。コミットする（誰でも `prisma migrate deploy` でDB構築できるように）
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.DS_Store
+*.pem
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Local working files (not part of the package)
+temp/
+.logs/
+
+# 社内・個人運用の資料（配布対象外）。設計の経緯や旧要件、POC 成果物を置く。
+docs/internal/

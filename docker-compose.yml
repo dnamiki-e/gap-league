@@ -1,0 +1,24 @@
+# Gap League のローカル/簡易デプロイ用 PostgreSQL。
+# 使い方:  docker compose up -d
+#   接続文字列例: DATABASE_URL=postgresql://gap:gap@localhost:5432/gap_league
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: gapleague-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gap
+      POSTGRES_PASSWORD: gap
+      POSTGRES_DB: gap_league
+    ports:
+      - "5432:5432"
+    volumes:
+      - gapleague-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gap -d gap_league"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  gapleague-pgdata:

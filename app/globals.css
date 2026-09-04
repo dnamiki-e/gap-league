@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #0f1117;
+  --color-card: #1a1f2e;
+  --color-border: #ffffff1a;
+  --color-accent-cyan: #38bdf8;
+  --color-accent-violet: #a78bfa;
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  --color-warn: #fbbf24;
+  --color-text-primary: #f1f5f9;
+  --color-text-muted: #94a3b8;
+}
+
+:root {
+  /* 面の階層（薄い→濃い）: surface / card-surface = 白、background = 地、fill = 凹み
+     背景とカードが同色だと階層が消えるため、必ず別値にする。 */
+  --background: #f1f5f9;
+  --foreground: #0f172a;
+  --surface: #ffffff;      /* サイドバー・ヘッダーなどのクローム */
+  --card: #e8eef4;         /* クローム内の淡いホバー・副ボタン */
+  --card-surface: #ffffff; /* 本文カード（地の上に載る） */
+  --fill: #eaf0f6;         /* カード内の入力欄・タイル（凹み） */
+  --fill-hover: #dee7f0;   /* 上記のホバー・実体のあるチップ */
+  --border: #cbd5e1;
+  /* 優勝バナー用。ライトは濃い琥珀、ダークは明るい琥珀。どちらも地に対し 7:1 以上。 */
+  --gold: #92400e;
+  --gold-bg: #fef6e7;
+  --gold-border: #f0d9a8;
+  --accent-cyan: #0ea5e9;
+  --accent-violet: #8b5cf6;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+}
+
+[data-theme='dark'] {
+  --background: #0f1117;
+  --foreground: #f1f5f9;
+  --surface: #1a1f2e;
+  --card: #111827;
+  --card-surface: #1a1f2e;
+  --fill: #202836;
+  --fill-hover: #29323f;
+  --border: #ffffff1a;
+  --gold: #fbbf24;
+  --gold-bg: #2a2110;
+  --gold-border: #6b5220;
+  --accent-cyan: #38bdf8;
+  --accent-violet: #a78bfa;
+  --success: #4ade80;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Noto Sans JP", Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Light mode overrides for legacy dark utility classes
+   ダークモード用に直書きされたクラスを、ライト時だけトークンへ読み替える。
+   A) 本文カード → --card-surface / B) 凹み（入力欄・タイル）→ --fill
+   C) 実体のあるチップ・アバター → --fill-hover
+   A と B を同じ値にすると入力欄がカードに溶けるため、必ず分ける。 */
+
+/* A) 本文カード */
+[data-theme='light'] [class~="bg-[#1a1f2e]"],
+[data-theme='light'] [class~="bg-[#1a1f2e]/50"],
+[data-theme='light'] [class~="bg-[#1a1f2e]/80"],
+[data-theme='light'] [class~="bg-[#0f1117]"],
+[data-theme='light'] [class~="bg-[#111827]"],
+[data-theme='light'] [class~="bg-slate-900"],
+[data-theme='light'] [class~="bg-slate-800"],
+[data-theme='light'] [class~="bg-slate-800/50"] {
+  background-color: var(--card-surface) !important;
+}
+
+/* B) 凹み：入力欄・タイル・半透明の重ね */
+[data-theme='light'] [class~="bg-white/2"],
+[data-theme='light'] [class~="bg-white/3"],
+[data-theme='light'] [class~="bg-white/5"],
+[data-theme='light'] [class~="bg-white/10"],
+[data-theme='light'] [class~="bg-white/15"],
+[data-theme='light'] [class~="bg-white/20"],
+[data-theme='light'] [class~="bg-slate-700/20"],
+[data-theme='light'] [class~="bg-slate-700/30"],
+[data-theme='light'] [class~="bg-slate-700/40"],
+[data-theme='light'] [class~="bg-slate-400/5"] {
+  background-color: var(--fill) !important;
+}
+
+/* C) 実体のあるチップ・アバター（TeamCrest の代替バッジなど）。
+      白にすると白文字・白丸が消えるため、地より濃い側に置く。 */
+[data-theme='light'] [class~="bg-slate-700"],
+[data-theme='light'] [class~="bg-slate-600"],
+[data-theme='light'] [class~="bg-slate-400"] {
+  background-color: var(--fill-hover) !important;
+}
+
+[data-theme='light'] [class~="border-white/5"],
+[data-theme='light'] [class~="border-white/10"],
+[data-theme='light'] [class~="border-white/20"],
+[data-theme='light'] [class~="border-white/30"],
+[data-theme='light'] [class~="border-slate-400"],
+[data-theme='light'] [class~="border-slate-400/30"],
+[data-theme='light'] [class~="border-slate-500"],
+[data-theme='light'] [class~="border-slate-600"],
+[data-theme='light'] [class~="border-slate-700"],
+[data-theme='light'] [class~="border-slate-700/50"],
+[data-theme='light'] [class~="border-slate-800"] {
+  border-color: var(--border) !important;
+}
+
+[data-theme='light'] [class~="text-[#f1f5f9]"],
+[data-theme='light'] [class~="text-white"],
+[data-theme='light'] [class~="text-slate-100"],
+[data-theme='light'] [class~="text-slate-200"],
+[data-theme='light'] [class~="text-slate-300"] {
+  color: var(--foreground) !important;
+}
+
+[data-theme='light'] [class~="text-[#94a3b8]"],
+[data-theme='light'] [class~="text-[#94a3b8]/20"],
+[data-theme='light'] [class~="text-[#94a3b8]/30"],
+[data-theme='light'] [class~="text-[#94a3b8]/50"],
+[data-theme='light'] [class~="text-[#94a3b8]/60"],
+[data-theme='light'] [class~="text-slate-400"],
+[data-theme='light'] [class~="text-slate-500"],
+[data-theme='light'] [class~="text-slate-600"] {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='light'] [class~="placeholder-[#94a3b8]"]::placeholder,
+[data-theme='light'] [class~="placeholder-[#94a3b8]/50"]::placeholder,
+[data-theme='light'] [class~="placeholder-slate-600"]::placeholder,
+[data-theme='light'] [class~="placeholder-slate-500"]::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* ホバー：カードは凹み側へ、凹みはさらに一段濃く */
+[data-theme='light'] [class~="hover:bg-[#1a1f2e]"]:hover,
+[data-theme='light'] [class~="hover:bg-[#1a1f2e]/80"]:hover,
+[data-theme='light'] [class~="hover:bg-slate-800/50"]:hover {
+  background-color: var(--fill) !important;
+}
+
+[data-theme='light'] [class~="hover:bg-white/3"]:hover,
+[data-theme='light'] [class~="hover:bg-white/5"]:hover,
+[data-theme='light'] [class~="hover:bg-white/10"]:hover,
+[data-theme='light'] [class~="hover:bg-white/15"]:hover,
+[data-theme='light'] [class~="hover:bg-white/20"]:hover,
+[data-theme='light'] [class~="hover:bg-slate-600"]:hover {
+  background-color: var(--fill-hover) !important;
+}
+
+[data-theme='light'] [class~="hover:border-white/20"]:hover,
+[data-theme='light'] [class~="hover:border-white/30"]:hover,
+[data-theme='light'] [class~="hover:border-slate-400"]:hover,
+[data-theme='light'] [class~="hover:border-slate-500"]:hover,
+[data-theme='light'] [class~="hover:border-slate-600"]:hover,
+[data-theme='light'] [class~="hover:border-slate-700"]:hover,
+[data-theme='light'] [class~="hover:border-slate-800"]:hover {
+  border-color: var(--border) !important;
+}
