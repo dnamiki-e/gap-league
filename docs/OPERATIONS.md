@@ -169,7 +169,48 @@ pg_restore -d gap_league --clean gap_league_20260401.dump
 git pull
 npm install
 npx prisma migrate deploy   # スキーマ変更があれば適用
-npm run build && npm start
+npm run build
+sudo systemctl restart gap-league   # ← 必ずビルドの直後に
 ```
 
 マイグレーションを当てる前に DB のバックアップを取ること。
+
+### 稼働中のサーバがある状態でビルドすると、そのサーバが壊れる
+
+**`npm run build` を実行した瞬間、動いているアプリは画面が開かなくなる。**
+再起動するまで直らない。
+
+Next.js は `.next/BUILD_ID` を作り直し、JS チャンクのファイル名もすべて変わる。
+起動中のプロセスは古い名前のチャンクを返し続けるが、そのファイルは既に消えているので、
+ブラウザが取りに行った時点で 404 になる。サーバのログには何も出ない
+（アプリは正常に動いており、壊れているのはブラウザが読むファイルの方）。
+
+**対策: ビルドと再起動を必ず続けて実行する。** 間に確認作業を挟まない。
+
+```bash
+npm run build && sudo systemctl restart gap-league
+```
+
+**同じ理由で、本番と同じディレクトリで `npm run dev` を動かしてはいけない。**
+開発サーバも `.next` を書き換えるため、稼働中の本番が巻き添えになる。
+別ポートを指定しても関係ない（壊れるのはポートではなくビルド成果物）。
+検証したいときは、リポジトリを別ディレクトリに clone してそちらで動かす。
+
+### 復旧のしかた
+
+画面が開かなくなったら、ビルドし直して再起動する。
+
+```bash
+npm run build && sudo systemctl restart gap-league
+```
+
+直ったかどうかは、ログイン画面が参照しているチャンクを実際に取得して確かめる。
+
+```bash
+curl -s https://example.com/login -o /tmp/login.html
+grep -oE '/_next/static/[^"]+\.js' /tmp/login.html | sort -u | head -5 | while read u; do
+  curl -s -o /dev/null -w "%{http_code} $u\n" "https://example.com$u"
+done
+```
+
+すべて 200 なら復旧している。404 が混ざっていれば、まだ古い成果物を返している。
