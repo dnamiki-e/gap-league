@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { fetchExcludedPlayerIds } from "@/lib/league-data"
+import { hasScorerPrediction } from "@/lib/leagues"
 import { getScorerDeadline } from "@/lib/season-visibility"
 
 /**
@@ -61,6 +62,14 @@ export async function PUT(req: NextRequest) {
 
   const season = await prisma.season.findUnique({ where: { id: seasonId } })
   if (!season) return NextResponse.json({ error: "Season not found" }, { status: 404 })
+  // 得点予想を行わないリーグ（lib/leagues.ts）は受け付けない。
+  // 画面にはタブを出していないが、直接叩けば入ってしまうため塞ぐ。
+  if (!hasScorerPrediction(season.leagueCode)) {
+    return NextResponse.json(
+      { error: "このリーグでは得点予想を行いません" },
+      { status: 400 }
+    )
+  }
   if (season.isLocked) return NextResponse.json({ error: "確定済みのシーズンです" }, { status: 403 })
   // 得点予想は順位予想と別の締切を持つ（未設定なら順位予想と同じ）
   if (new Date() > getScorerDeadline(season)) {
