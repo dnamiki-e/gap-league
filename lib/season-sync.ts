@@ -1,6 +1,6 @@
 import { Season } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
-import { fetchTeams, fetchStandings, SeasonUnavailableError } from "@/lib/football-data"
+import { fetchTeams, fetchStandings, fetchMatches, SeasonUnavailableError } from "@/lib/football-data"
 import { calculateScore } from "@/lib/scoring"
 import { getScoringConfig } from "@/lib/site-config"
 
@@ -8,6 +8,7 @@ export interface SyncSummary {
   seasonId: string
   teamsUpserted: number
   standingsUpserted: number
+  matchesUpserted: number
   snapshotsSaved: number
   scoresRecalculated: number
   warnings: string[]
@@ -22,6 +23,7 @@ export async function syncSeasonData(season: Season): Promise<SyncSummary> {
     seasonId,
     teamsUpserted: 0,
     standingsUpserted: 0,
+    matchesUpserted: 0,
     snapshotsSaved: 0,
     scoresRecalculated: 0,
     warnings: [],
@@ -115,7 +117,107 @@ export async function syncSeasonData(season: Season): Promise<SyncSummary> {
     }
   }
 
-  // 3. Save standing snapshot
+  // 3. Sync matches
+  //
+  // 締切の解決（「ラウンド16の初戦キックオフ1時間前」など）に日程が要る。
+  // 判定のたびに上流を叩くと、上流が落ちた瞬間に締切が解決できなくなって
+  // 誰も予想できなくなるので、ここで保存しておく。
+  try {
+    const matches = await fetchMatches({
+      leagueCode: season.leagueCode,
+      season: season.seasonYear,
+      order: "asc",
+    })
+
+    if (matches.length > 0) {
+      // 上流のチームIDから DB の Team.id を引く。
+      // SeasonTeam ではなく apiTeamId で引くのは、上流が
+      // そのシーズンのチーム一覧に無いチームを試合に載せることがあるため。
+      const apiTeamIds = [
+        ...new Set(matches.flatMap((m) => [m.home_team_id, m.away_team_id])),
+      ]
+      const teams = await prisma.team.findMany({
+        where: { apiTeamId: { in: apiTeamIds } },
+        select: { id: true, apiTeamId: true },
+      })
+      const teamIdByApiId = new Map(teams.map((t) => [t.apiTeamId, t.id]))
+
+      // 既存行を先に読み、中身が変わっていないものは書かない。
+      // 1シーズンで数百試合あり、その大半は確定済みで二度と変わらない。
+      const existing = await prisma.match.findMany({
+        where: { seasonId },
+        select: {
+          apiMatchId: true,
+          status: true,
+          utcDate: true,
+          scoreHomeFt: true,
+          scoreAwayFt: true,
+          winner: true,
+          stage: true,
+          matchday: true,
+        },
+      })
+      const existingByApiId = new Map(existing.map((m) => [m.apiMatchId, m]))
+
+      let skippedUnknownTeam = 0
+      for (const m of matches) {
+        const homeTeamId = teamIdByApiId.get(m.home_team_id)
+        const awayTeamId = teamIdByApiId.get(m.away_team_id)
+        if (!homeTeamId || !awayTeamId) {
+          // チーム同期が先に失敗している。試合だけ入れても紐付かないので飛ばす
+          skippedUnknownTeam++
+          continue
+        }
+
+        const utcDate = new Date(m.utc_date)
+        const prev = existingByApiId.get(m.id)
+        if (
+          prev &&
+          prev.status === m.status &&
+          prev.stage === m.stage &&
+          prev.matchday === (m.matchday || null) &&
+          prev.utcDate.getTime() === utcDate.getTime() &&
+          prev.scoreHomeFt === m.score_home_ft &&
+          prev.scoreAwayFt === m.score_away_ft &&
+          prev.winner === m.winner
+        ) {
+          continue
+        }
+
+        const data = {
+          stage: m.stage,
+          matchday: m.matchday || null,
+          status: m.status,
+          utcDate,
+          homeTeamId,
+          awayTeamId,
+          scoreHomeFt: m.score_home_ft,
+          scoreAwayFt: m.score_away_ft,
+          winner: m.winner,
+        }
+        await prisma.match.upsert({
+          where: { apiMatchId: m.id },
+          update: data,
+          create: { apiMatchId: m.id, seasonId, ...data },
+        })
+        summary.matchesUpserted++
+      }
+
+      if (skippedUnknownTeam > 0) {
+        summary.warnings.push(
+          `${skippedUnknownTeam}件の試合を取り込めませんでした（チームが未同期）`
+        )
+      }
+    }
+  } catch (err) {
+    if (err instanceof SeasonUnavailableError) {
+      // チーム同期の時点で警告済み
+    } else {
+      summary.errors.push(`Matches sync failed: ${String(err)}`)
+    }
+  }
+
+  // 4. Save standing snapshot
   try {
     const latestStandings = await prisma.standing.findMany({
       where: { seasonId },
@@ -155,7 +257,7 @@ export async function syncSeasonData(season: Season): Promise<SyncSummary> {
     summary.errors.push(`Snapshot save failed: ${String(err)}`)
   }
 
-  // 4. Recalculate all scores
+  // 5. Recalculate all scores
   try {
     const standings = await prisma.standing.findMany({ where: { seasonId } })
     const standingMap = new Map(standings.map((s) => [s.teamId, s.actualRank]))

@@ -168,6 +168,12 @@ export interface MatchResult {
   competition_code: string
   season: number
   matchday: number
+  /**
+   * LEAGUE_STAGE / PLAYOFFS / LAST_16 / QUARTER_FINALS / SEMI_FINALS / FINAL など。
+   * リーグ戦は REGULAR_SEASON。締切の解決（キックオフ基準）と
+   * ブラケット予想の対戦カード抽出に使う。
+   */
+  stage: string
   status: string
   utc_date: string
   home_team_id: number
@@ -446,6 +452,7 @@ export async function fetchMatches(params: {
         competition_code: leagueCode,
         season,
         matchday: m.matchday ?? 0,
+        stage: m.stage ?? "REGULAR_SEASON",
         status: m.status,
         utc_date: m.utc_date,
         home_team_id: m.home_team_fd_id ?? m.home_team_id,
@@ -470,6 +477,7 @@ export async function fetchMatches(params: {
         utcDate: string
         status: string
         matchday?: number | null
+        stage?: string | null
         homeTeam: { id: number; name: string }
         awayTeam: { id: number; name: string }
         score?: {
@@ -485,6 +493,7 @@ export async function fetchMatches(params: {
       competition_code: leagueCode,
       season,
       matchday: m.matchday ?? 0,
+      stage: m.stage ?? "REGULAR_SEASON",
       status: m.status,
       utc_date: m.utcDate,
       home_team_id: m.homeTeam.id,

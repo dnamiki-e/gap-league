@@ -23,6 +23,7 @@ interface Season {
 interface SyncResult {
   teamsUpserted: number
   standingsUpserted: number
+  matchesUpserted: number
   scoresRecalculated: number
   warnings: string[]
   errors: string[]
@@ -481,6 +482,7 @@ export default function AdminSeasonsPage() {
                   <p className="font-medium mb-1">同期結果</p>
                   <p>チーム更新: {syncResults[season.id].teamsUpserted}</p>
                   <p>順位更新: {syncResults[season.id].standingsUpserted}</p>
+                  <p>試合更新: {syncResults[season.id].matchesUpserted}</p>
                   <p>スコア再計算: {syncResults[season.id].scoresRecalculated}</p>
                   {syncResults[season.id].warnings?.length > 0 && (
                     <div className="mt-2">

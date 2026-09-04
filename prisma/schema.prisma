@@ -71,8 +71,8 @@ model SiteConfig {
   googleClientSecretEnc String?
   /// Google ログインを許可するメールドメイン。空文字 = 制限なし。null = env ALLOWED_EMAIL_DOMAIN
   allowedEmailDomain    String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 // App models
@@ -114,8 +114,8 @@ model InvitationToken {
 }
 
 model Season {
-  id                 String   @id @default(cuid())
-  leagueCode         String   @default("PL")
+  id                 String    @id @default(cuid())
+  leagueCode         String    @default("PL")
   seasonYear         Int
   name               String
   /// 順位予想の締切
@@ -123,18 +123,19 @@ model Season {
   /// 得点予想の締切。未設定なら predictionDeadline と同じ扱い。
   /// 順位予想より後ろに置けるようにするために分けてある。
   scorerDeadline     DateTime?
-  isLocked           Boolean  @default(false)
-  isActive           Boolean  @default(true)
+  isLocked           Boolean   @default(false)
+  isActive           Boolean   @default(true)
   // 終盤ネタバレ防止用。残り5節以下では順位を非表示にし、
   // 最終節完了後に管理者が「結果を開示」を押したら true になる。
-  resultsRevealed    Boolean  @default(false)
-  createdAt          DateTime @default(now())
+  resultsRevealed    Boolean   @default(false)
+  createdAt          DateTime  @default(now())
 
   seasonTeams SeasonTeam[]
   predictions Prediction[]
   standings   Standing[]
   scores      Score[]
   snapshots   StandingSnapshot[]
+  matches     Match[]
 }
 
 model Team {
@@ -153,6 +154,8 @@ model Team {
   predictionDetails PredictionDetail[]
   standings         Standing[]
   standingSnapshots StandingSnapshot[]
+  homeMatches       Match[]            @relation("HomeMatches")
+  awayMatches       Match[]            @relation("AwayMatches")
 }
 
 model SeasonTeam {
@@ -243,15 +246,15 @@ model StandingSnapshot {
 /// 得点予想の候補になる選手。football-data.org のスカッドから同期する。
 /// crawler 側の選手データは20クラブ中11クラブ分しか無いため、上流から直接取る。
 model Player {
-  id          String  @id @default(cuid())
-  apiPlayerId Int     @unique
+  id          String   @id @default(cuid())
+  apiPlayerId Int      @unique
   name        String
   position    String?
   teamId      String
   updatedAt   DateTime @updatedAt
 
-  team    Team               @relation(fields: [teamId], references: [id])
-  picks   PredictionScorer[]
+  team  Team               @relation(fields: [teamId], references: [id])
+  picks PredictionScorer[]
 
   @@index([teamId])
 }
@@ -261,15 +264,15 @@ model Player {
 /// 選手だけを持つ。Prediction に相乗りするので締切・一意制約は順位予想と共通。
 /// 既存の予想はこの行を持たず、その場合の加点は 0（＝従来どおりのスコア）。
 model PredictionScorer {
-  predictionId   String
-  playerId       String
+  predictionId String
+  playerId     String
   /// 表示順（1..3）。同じ選手を複数枠に入れられないよう主キーは playerId 側で縛る
-  slot           Int
+  slot         Int
   /// どのクラブの一覧から選んだか。上流が移籍前後の両クラブに同じ選手を載せることがあり
   /// （例: Bruno Guimarães が Arsenal と Newcastle の双方に在籍）、
   /// Player.teamId は「最後に同期したクラブ」になってしまう。
   /// 指名時に見えていたクラブを正として表示する。
-  pickedTeamId   String?
+  pickedTeamId String?
 
   prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
   player     Player     @relation(fields: [playerId], references: [id])
@@ -277,4 +280,38 @@ model PredictionScorer {
 
   @@id([predictionId, playerId])
   @@unique([predictionId, slot])
+}
+
+/// 試合。同期で上流から取り込んで保存する。
+///
+/// 保存する理由は締切の解決。「ラウンド16の初戦キックオフ1時間前」のような
+/// 締切は日程が要るが、判定のたびに上流を叩くと、上流が落ちた瞬間に
+/// 締切が解決できなくなって誰も予想できなくなる。
+/// ブラケット予想の対戦カード抽出とスコア予想の対象試合にも使う。
+model Match {
+  id          String   @id @default(cuid())
+  seasonId    String
+  /// 上流の試合ID
+  apiMatchId  Int      @unique
+  /// LEAGUE_STAGE / PLAYOFFS / LAST_16 / QUARTER_FINALS / SEMI_FINALS / FINAL / REGULAR_SEASON
+  stage       String
+  matchday    Int?
+  /// SCHEDULED / TIMED / IN_PLAY / PAUSED / FINISHED / POSTPONED など
+  status      String
+  utcDate     DateTime
+  homeTeamId  String
+  awayTeamId  String
+  /// 90分＋延長のスコア。PK戦は含まない
+  scoreHomeFt Int?
+  scoreAwayFt Int?
+  /// HOME_TEAM / AWAY_TEAM / DRAW
+  winner      String?
+  updatedAt   DateTime @updatedAt
+
+  season   Season @relation(fields: [seasonId], references: [id])
+  homeTeam Team   @relation("HomeMatches", fields: [homeTeamId], references: [id])
+  awayTeam Team   @relation("AwayMatches", fields: [awayTeamId], references: [id])
+
+  @@index([seasonId, stage])
+  @@index([seasonId, utcDate])
 }
