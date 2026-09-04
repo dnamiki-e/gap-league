@@ -12,7 +12,7 @@ import {
   canShowRankings,
   getVisibilityStatus,
   getRemainingMatchdays,
-  ENDGAME_REMAINING_MATCHDAYS,
+  getEndgameRemaining,
 } from "@/lib/season-visibility"
 
 function formatDeadline(date: Date): string {
@@ -244,7 +244,7 @@ export default async function HomePage() {
                   <div>
                     <p className="text-[#a78bfa] font-bold text-sm">終盤モード（残り{remainingMatchdays}節）</p>
                     <p className="text-[#94a3b8] text-xs mt-1">
-                      残り{ENDGAME_REMAINING_MATCHDAYS}節以下になったため、順位・スコアは全員非公開です。
+                      残り{getEndgameRemaining(activeSeason?.leagueCode ?? "")}節以下になったため、順位・スコアは全員非公開です。
                       最終節終了後、管理者が開示ボタンを押すと一斉に結果が発表されます。
                     </p>
                   </div>

@@ -8,7 +8,7 @@ import ScorerPredict from "@/components/ScorerPredict"
 import ViewTabs from "@/components/ViewTabs"
 import AppShell from "@/components/AppShell"
 import { apiUrl } from "@/lib/api"
-import { LEAGUE_GROUPS } from "@/lib/league-teams"
+import { leagueName, hasScorerPrediction, predictionSlots } from "@/lib/leagues"
 import { pageClass } from "@/lib/ui"
 import { getScorerDeadline } from "@/lib/season-visibility"
 
@@ -37,9 +37,6 @@ interface PredictionDetail {
 }
 
 type PredictTab = "table" | "scorer"
-
-const leagueName = (code: string) =>
-  LEAGUE_GROUPS.find((l) => l.code === code)?.name ?? code
 
 export default function PredictPage() {
   const { data: session, status } = useSession()
@@ -114,13 +111,21 @@ export default function PredictPage() {
     ? season.isLocked || (scorerDeadline !== null && scorerDeadline < new Date())
     : false
 
+  // 得点予想を行うリーグかどうか（lib/leagues.ts）。行わないリーグではタブごと出さない。
+  const showScorer = season ? hasScorerPrediction(season.leagueCode) : false
+  // 順位予想で並べる枠数。CL のリーグフェーズのように上位N位だけを予想するリーグがある。
+  const slots = season ? predictionSlots(season.leagueCode, teams.length) : teams.length
+
   // 順位予想が締切済みで得点予想がまだ開いているときは、開いている方を最初に見せる。
   // （順位予想を既定にすると、締切後は閲覧専用の画面に着地してタブを探させることになる）
-  const activeTab: PredictTab = tab ?? (isLocked && !isScorerLocked ? "scorer" : "table")
+  const activeTab: PredictTab =
+    !showScorer ? "table" : (tab ?? (isLocked && !isScorerLocked ? "scorer" : "table"))
   const tabItems = [
     // 締切は色ではなく文字でも示す
     { key: "table" as const, label: "順位予想", badge: isLocked ? "締切" : undefined },
-    { key: "scorer" as const, label: "得点予想", badge: isScorerLocked ? "締切" : undefined },
+    ...(showScorer
+      ? [{ key: "scorer" as const, label: "得点予想", badge: isScorerLocked ? "締切" : undefined }]
+      : []),
   ]
 
   if (status === "loading" || loading) {
@@ -224,13 +229,16 @@ export default function PredictPage() {
               <DragDropPredict
                 key={season.id}
                 teams={teams}
+                slots={slots}
                 initialPrediction={prediction}
                 seasonId={season.id}
                 isLocked={isLocked}
               />
             </div>
 
-            {/* 得点予想。順位予想とは別に保存する（あちらのオートセーブに巻き込まれないため） */}
+            {/* 得点予想。順位予想とは別に保存する（あちらのオートセーブに巻き込まれないため）。
+                得点予想を行わないリーグでは要素ごと出さない（hidden だけだと裏で選手を取りに行く） */}
+            {showScorer && (
             <div
               role="tabpanel"
               id="panel-scorer"
@@ -245,6 +253,7 @@ export default function PredictPage() {
                 deadline={scorerDeadline}
               />
             </div>
+            )}
           </>
         )}
       </div>

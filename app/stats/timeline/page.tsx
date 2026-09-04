@@ -12,7 +12,7 @@ import { pageClass, statsNav } from "@/lib/ui"
 import {
   canShowRankings,
   getVisibilityStatus,
-  ENDGAME_REMAINING_MATCHDAYS,
+  getEndgameRemaining,
 } from "@/lib/season-visibility"
 
 interface PageProps {
@@ -198,7 +198,7 @@ export default async function TimelinePage({ searchParams }: PageProps) {
           <div className="bg-[#a78bfa]/10 border border-[#a78bfa]/30 rounded-2xl p-8 text-center space-y-3">
             <p className="text-5xl">🤫</p>
             <p className="text-[#a78bfa] font-bold">
-              {visibility === "pre-deadline" ? "予想受付中" : `終盤モード（残り${ENDGAME_REMAINING_MATCHDAYS}節以下）`}
+              {visibility === "pre-deadline" ? "予想受付中" : `終盤モード（残り${getEndgameRemaining(selectedSeason?.leagueCode ?? "")}節以下）`}
             </p>
             <p className="text-[#94a3b8] text-sm">
               {visibility === "pre-deadline"

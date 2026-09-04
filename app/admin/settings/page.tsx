@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { apiUrl } from "@/lib/api"
-import { LEAGUE_GROUPS } from "@/lib/league-teams"
+import { LEAGUES } from "@/lib/leagues"
 
 interface SiteConfig {
   siteName: string
@@ -153,7 +153,7 @@ export default function AdminSettingsPage() {
             <p className="text-[#94a3b8] text-xs mt-0.5">予想対象として選べるリーグ。</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {LEAGUE_GROUPS.map((league) => {
+            {LEAGUES.map((league) => {
               const checked = config.enabledLeagues.includes(league.code)
               return (
                 <label

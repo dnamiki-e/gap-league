@@ -22,7 +22,7 @@ import {
   getVisibilityStatus,
   getRemainingMatchdays,
   getCurrentMatchday,
-  ENDGAME_REMAINING_MATCHDAYS,
+  getEndgameRemaining,
 } from "@/lib/season-visibility"
 
 interface PageProps {
@@ -152,6 +152,7 @@ export default async function ResultsPage({ searchParams }: PageProps) {
     resultsRevealed: selectedSeason?.resultsRevealed ?? false,
     remainingMatchdays,
     hasStandings: standings.length > 0,
+    endgameRemaining: getEndgameRemaining(selectedSeason?.leagueCode ?? ""),
   })
   const matrixColor = parseMatrixColor(colorParam, fallbackColor)
   const matrixOrder = parseMatrixOrder(orderParam, defaultMatrixOrder(fallbackColor))
@@ -250,7 +251,7 @@ export default async function ResultsPage({ searchParams }: PageProps) {
           <div className="bg-[#a78bfa]/10 border border-[#a78bfa]/30 rounded-2xl p-8 text-center space-y-3">
             <p className="text-5xl">🤫</p>
             <p className="text-[#a78bfa] font-bold text-lg">
-              {visibility === "pre-deadline" ? "予想受付中" : `終盤モード（残り${ENDGAME_REMAINING_MATCHDAYS}節以下）`}
+              {visibility === "pre-deadline" ? "予想受付中" : `終盤モード（残り${getEndgameRemaining(selectedSeason?.leagueCode ?? "")}節以下）`}
             </p>
             <p className="text-[#94a3b8] text-sm max-w-md mx-auto">
               {visibility === "pre-deadline"

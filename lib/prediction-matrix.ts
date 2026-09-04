@@ -1,4 +1,3 @@
-import { ENDGAME_REMAINING_MATCHDAYS } from "@/lib/season-visibility"
 
 /**
  * チーム × 人の予想比較表（/results の「予想を比較」）の並びと色。
@@ -122,10 +121,12 @@ export function defaultMatrixColor(params: {
   resultsRevealed: boolean
   remainingMatchdays: number
   hasStandings: boolean
+  /** 終盤とみなす残り節数。リーグごとに違う（lib/leagues.ts） */
+  endgameRemaining: number
 }): MatrixColor {
   if (!params.hasStandings) return "dev"
   if (params.isLocked || params.resultsRevealed) return "actual"
-  if (params.remainingMatchdays <= ENDGAME_REMAINING_MATCHDAYS) return "actual"
+  if (params.remainingMatchdays <= params.endgameRemaining) return "actual"
   return "dev"
 }
 

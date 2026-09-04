@@ -4,6 +4,8 @@ import {
   canShowRankings,
   canShowPredictions,
   hasPassedDeadline,
+  canRevealResults,
+  getRemainingMatchdays,
   type MinimalSeason,
   type MinimalStanding,
 } from "@/lib/season-visibility"
@@ -138,5 +140,31 @@ describe("canShowRankings / canShowPredictions", () => {
     const season = makeSeason({ predictionDeadline: farFuture })
     expect(canShowRankings(season, [])).toBe(false)
     expect(canShowPredictions(season, [])).toBe(false)
+  })
+})
+
+describe("CL リーグフェーズ（8節・終盤の閾値1）", () => {
+  const cl = (o: Partial<MinimalSeason> = {}) => makeSeason({ leagueCode: "CL", ...o })
+  const clStandings = (played: number) => makeStandings(played, 36)
+
+  it("3節消化では終盤にならない（各国リーグの閾値5をそのまま当てると隠れてしまう）", () => {
+    // 残り5節。PL なら終盤だが、8節しかない CL では序盤にあたる
+    expect(getVisibilityStatus(cl(), clStandings(3), NOW)).toBe("in-progress")
+    expect(canShowRankings(cl(), clStandings(3), NOW)).toBe(true)
+  })
+
+  it("7節消化（残り1節）で終盤に入る", () => {
+    expect(getVisibilityStatus(cl(), clStandings(7), NOW)).toBe("endgame-hidden")
+    expect(canShowRankings(cl(), clStandings(7), NOW)).toBe(false)
+  })
+
+  it("8節消化でシーズン完了（結果を開示できる状態になる）", () => {
+    expect(canRevealResults(clStandings(8), "CL")).toBe(true)
+    expect(canRevealResults(clStandings(7), "CL")).toBe(false)
+  })
+
+  it("同じ節数でも PL では判定が変わる（総節数がリーグごとに違うこと）", () => {
+    expect(getRemainingMatchdays(clStandings(3), "CL")).toBe(5)
+    expect(getRemainingMatchdays(makeStandings(3), "PL")).toBe(35)
   })
 })

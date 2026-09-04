@@ -3,24 +3,15 @@
  *
  * ルール:
  *  - 予想締切前 → 他人の予想・順位・スコアは一切非表示（自分の予想はいつでも見える）
- *  - 締切後・進行中で残り >5節 → 通常表示
- *  - 締切後・残り ≤5節（終盤モード）→ 順位・予想を全員分マスク（ネタバレ防止）
+ *  - 締切後・進行中で残りが十分ある → 通常表示
+ *  - 締切後・終盤（残り節数がリーグごとの閾値以下）→ 順位・予想を全員分マスク
  *  - 管理者が「結果開示」を押した（resultsRevealed=true）→ 常に表示
  *  - シーズン確定済み（isLocked=true）→ 常に表示（アーカイブ扱い）
+ *
+ * 総節数と終盤の閾値はリーグごとに違う（lib/leagues.ts が正本）。
+ * 節数の少ないリーグに一律の閾値を当てると、シーズンのほとんどが隠れてしまう。
  */
-
-// リーグごとの総節数（総当たり2回制）
-// チーム数 n に対して (n-1)*2 節
-export const TOTAL_MATCHDAYS_BY_LEAGUE: Record<string, number> = {
-  PL: 38,   // 20チーム
-  PD: 38,   // 20チーム
-  SA: 38,   // 20チーム
-  BL1: 34,  // 18チーム
-  FL1: 34,  // 18チーム
-}
-
-// 残り何節から隠すか
-export const ENDGAME_REMAINING_MATCHDAYS = 5
+import { getLeague } from "@/lib/leagues"
 
 export interface MinimalStanding {
   played: number
@@ -34,7 +25,12 @@ export interface MinimalSeason {
 }
 
 export function getTotalMatchdays(leagueCode: string): number {
-  return TOTAL_MATCHDAYS_BY_LEAGUE[leagueCode] ?? 38
+  return getLeague(leagueCode).totalMatchdays
+}
+
+/** 残り何節から他人の予想・順位を隠すか。0 なら隠さない。 */
+export function getEndgameRemaining(leagueCode: string): number {
+  return getLeague(leagueCode).endgameRemaining
 }
 
 /** 予想締切を過ぎたか */
@@ -67,10 +63,12 @@ export function getRemainingMatchdays(standings: MinimalStanding[], leagueCode: 
   return Math.max(0, total - current)
 }
 
-/** 終盤（残り ENDGAME_REMAINING_MATCHDAYS 節以下）に入ったか */
+/** 終盤（残り節数がリーグの閾値以下）に入ったか。閾値0のリーグは終盤モードを持たない。 */
 export function isEndgamePhase(standings: MinimalStanding[], leagueCode: string): boolean {
   if (!isSeasonStarted(standings)) return false
-  return getRemainingMatchdays(standings, leagueCode) <= ENDGAME_REMAINING_MATCHDAYS
+  const threshold = getEndgameRemaining(leagueCode)
+  if (threshold <= 0) return false
+  return getRemainingMatchdays(standings, leagueCode) <= threshold
 }
 
 /** 「結果を開示する」ボタンを押せるか（＝最終節完了後） */

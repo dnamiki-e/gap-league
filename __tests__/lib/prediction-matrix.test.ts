@@ -89,7 +89,7 @@ describe("sortMatrixRows", () => {
 })
 
 describe("defaultMatrixColor", () => {
-  const base = { isLocked: false, resultsRevealed: false, remainingMatchdays: 36, hasStandings: true }
+  const base = { isLocked: false, resultsRevealed: false, remainingMatchdays: 36, hasStandings: true, endgameRemaining: 5 }
 
   // 第2節で実順位との差で塗ると、ほぼ全部が「差8以上」になって実態を映さない
   it("進行中で残り節が多いうちは「みんなとのズレ」", () => {

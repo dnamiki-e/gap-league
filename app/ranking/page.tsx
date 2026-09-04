@@ -9,6 +9,7 @@ import ScorerBoard from "@/components/ScorerBoard"
 import TeamCrest from "@/components/TeamCrest"
 import { calculateScore } from "@/lib/scoring"
 import { getScorerBoard } from "@/lib/scorer-total"
+import { hasScorerPrediction } from "@/lib/leagues"
 import { getScoringConfig } from "@/lib/site-config"
 import { pageClass, rankingNav } from "@/lib/ui"
 import {
@@ -16,7 +17,7 @@ import {
   getVisibilityStatus,
   getRemainingMatchdays,
   hasPassedDeadline,
-  ENDGAME_REMAINING_MATCHDAYS,
+  getEndgameRemaining,
 } from "@/lib/season-visibility"
 
 interface PageProps {
@@ -137,7 +138,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
 
   // 得点予想の一覧。順位表と違い可視制御の外に置く（実得点は現実のデータで、
   // 指名も常時公開する運用）。得点予想が1件も無ければ null が返って非表示になる。
-  const scorerBoard = selectedSeason
+  // 得点予想を行わないリーグ（lib/leagues.ts）では取得そのものを止める。
+  const scorerBoard = selectedSeason && hasScorerPrediction(selectedSeason.leagueCode)
     ? await getScorerBoard({
         seasonId: selectedSeason.id,
         leagueCode: selectedSeason.leagueCode,
@@ -218,7 +220,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
               <div>
                 <p className="text-[#a78bfa] font-bold">終盤モード — 残り{remainingMatchdays}節</p>
                 <p className="text-[#94a3b8] text-sm mt-2">
-                  残り{ENDGAME_REMAINING_MATCHDAYS}節以下になったため、全員の順位・スコアを非公開にしています。
+                  残り{getEndgameRemaining(selectedSeason?.leagueCode ?? "")}節以下になったため、全員の順位・スコアを非公開にしています。
                   <br />
                   最終節終了後、管理者が結果を開示するボタンを押すと一斉に発表されます。それまでお楽しみに。
                 </p>
@@ -256,7 +258,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
               <p className="text-[#94a3b8] text-sm max-w-md mx-auto">
                 {visibility === "pre-deadline"
                   ? "予想受付中です。締切を過ぎると他の人の順位・スコアが見られるようになります。"
-                  : `残り${ENDGAME_REMAINING_MATCHDAYS}節以下のためネタバレ防止中。最終節終了後、管理者が結果を開示すると一斉公開されます。`}
+                  : `残り${getEndgameRemaining(selectedSeason?.leagueCode ?? "")}節以下のためネタバレ防止中。最終節終了後、管理者が結果を開示すると一斉公開されます。`}
               </p>
             </div>
           ) : selectedSeason ? (

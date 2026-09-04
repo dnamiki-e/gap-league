@@ -33,7 +33,7 @@ Hub の2つが揃っているときだけ Hub が選ばれ、そのとき `FOOTB
 FOOTBALL_DATA_API_KEY=あなたのキー
 ```
 
-無料プラン（Free Tier）で 5大リーグは全て取得できる。
+無料プラン（Free Tier）で 5大リーグと CL は取得できる（順位表・得点ランキングとも実測確認済み）。
 
 ### 使うエンドポイント
 
@@ -47,8 +47,11 @@ FOOTBALL_DATA_API_KEY=あなたのキー
 | 得点ランキング | `/competitions/{code}/scorers?season={year}&limit={n}` | `fetchScorersRaw` |
 | スカッド | `/teams/{teamId}` | `fetchSquadRaw` |
 
-`{code}` は競技会コード（`PL` / `PD` / `SA` / `BL1` / `FL1`）、`{year}` はシーズン開始年
+`{code}` は競技会コード（`PL` / `PD` / `SA` / `BL1` / `FL1` / `CL`）、`{year}` はシーズン開始年
 （2025-26 シーズンなら `2025`）。
+
+CL は順位表が `stage=LEAGUE_STAGE` の1ブロック（36チーム）で返る。
+アプリ側は `type=TOTAL` のブロックだけを使うので、HOME / AWAY の重複ブロックは自動的に落ちる。
 
 ### レート制限（重要）
 

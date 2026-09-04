@@ -39,7 +39,7 @@ export default async function LeagueScorersPage({ searchParams }: PageProps) {
   return (
     <AppShell title="リーグ">
       <div className={pageClass("wide", "space-y-6")}>
-        <LeagueHeader />
+        <LeagueHeader leagueCode={selectedSeason?.leagueCode} />
         <LeagueSeasonPills seasons={seasons} selectedId={selectedSeason?.id} basePath="/league" />
 
         <div className="bg-[#1a1f2e] rounded-2xl border border-white/10 p-6 space-y-4">

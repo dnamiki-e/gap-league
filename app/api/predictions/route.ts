@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { predictionSlots } from "@/lib/leagues"
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -30,18 +31,23 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(prediction)
 }
 
+// 上限はリーグによって変わる（各国リーグ=参加チーム数、CL=上位8位）ので、
+// ここでは形だけ見て、実際の枠数はシーズンを引いてから検証する。
+// 36 は CL リーグフェーズの参加チーム数（現行で最大）。
+const MAX_SLOTS = 36
+
 const predictionSchema = z.object({
   seasonId: z.string(),
   details: z
     .array(
       z.object({
         teamId: z.string(),
-        predictedRank: z.number().int().min(1).max(20),
+        predictedRank: z.number().int().min(1).max(MAX_SLOTS),
         comment: z.string().max(200).optional(),
       })
     )
     .min(1)
-    .max(20),
+    .max(MAX_SLOTS),
 })
 
 export async function POST(req: NextRequest) {
@@ -76,6 +82,23 @@ export async function POST(req: NextRequest) {
   }
   if (new Set(teamIds).size !== teamIds.length) {
     return NextResponse.json({ error: "Duplicate teams" }, { status: 400 })
+  }
+
+  // 枠数の検証。画面を通さずに送られても、そのリーグで有効な順位しか受け付けない。
+  const teamCount = await prisma.seasonTeam.count({ where: { seasonId } })
+  if (teamCount === 0) {
+    // 管理画面でシーズンを作った直後。同期前だと枠数を決められない。
+    return NextResponse.json(
+      { error: "このシーズンはまだチームが同期されていません" },
+      { status: 409 }
+    )
+  }
+  const slots = predictionSlots(season.leagueCode, teamCount)
+  if (details.length > slots || ranks.some((r) => r > slots)) {
+    return NextResponse.json(
+      { error: `このリーグの予想は${slots}枠までです` },
+      { status: 400 }
+    )
   }
 
   const existing = await prisma.prediction.findUnique({

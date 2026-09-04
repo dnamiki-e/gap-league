@@ -13,7 +13,7 @@ import {
   canShowRankings,
   canShowPredictions,
   getVisibilityStatus,
-  ENDGAME_REMAINING_MATCHDAYS,
+  getEndgameRemaining,
 } from "@/lib/season-visibility"
 
 interface PageProps {
@@ -236,7 +236,7 @@ export default async function UserPredictionPage({ params, searchParams }: PageP
               <span className="text-2xl">🤫</span>
               <div>
                 <p className="text-[#a78bfa] font-bold text-sm">
-                  {visibility === "pre-deadline" ? "予想受付中" : `終盤モード（残り${ENDGAME_REMAINING_MATCHDAYS}節以下）`}
+                  {visibility === "pre-deadline" ? "予想受付中" : `終盤モード（残り${getEndgameRemaining(selectedSeason?.leagueCode ?? "")}節以下）`}
                 </p>
                 <p className="text-[#94a3b8] text-xs mt-1">
                   {visibility === "pre-deadline"

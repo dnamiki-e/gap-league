@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { apiUrl } from "@/lib/api"
 import { LEAGUE_GROUPS } from "@/lib/league-teams"
-import { TOTAL_MATCHDAYS_BY_LEAGUE, ENDGAME_REMAINING_MATCHDAYS } from "@/lib/season-visibility"
+import { getTotalMatchdays, getEndgameRemaining } from "@/lib/season-visibility"
 
 interface Season {
   id: string
@@ -355,12 +355,12 @@ export default function AdminSeasonsPage() {
                       </span>
                     )}
                     {(() => {
-                      const total = TOTAL_MATCHDAYS_BY_LEAGUE[season.leagueCode] ?? 38
+                      const total = getTotalMatchdays(season.leagueCode)
                       const remaining = Math.max(0, total - season.maxPlayed)
                       if (season.standingsCount === 0) return null
                       if (season.maxPlayed === 0) return null
                       if (season.isLocked || season.resultsRevealed) return null
-                      if (remaining <= ENDGAME_REMAINING_MATCHDAYS) {
+                      if (remaining <= getEndgameRemaining(season.leagueCode)) {
                         return (
                           <span className="text-xs bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/30 px-2 py-0.5 rounded-full">
                             🤫 終盤モード（残り{remaining}節）
@@ -375,7 +375,7 @@ export default function AdminSeasonsPage() {
                     チーム: {season._count.seasonTeams} ·
                     予想: {season._count.predictions}
                     {season.maxPlayed > 0 && (
-                      <> · 進行: {season.minPlayed}〜{season.maxPlayed}節 / {TOTAL_MATCHDAYS_BY_LEAGUE[season.leagueCode] ?? 38}節</>
+                      <> · 進行: {season.minPlayed}〜{season.maxPlayed}節 / {getTotalMatchdays(season.leagueCode)}節</>
                     )}
                   </p>
                   <div className="mt-1">
@@ -421,7 +421,7 @@ export default function AdminSeasonsPage() {
                     {syncing === season.id ? "同期中..." : "データ同期"}
                   </button>
                   {(() => {
-                    const total = TOTAL_MATCHDAYS_BY_LEAGUE[season.leagueCode] ?? 38
+                    const total = getTotalMatchdays(season.leagueCode)
                     const canReveal =
                       season.standingsCount > 0 && season.minPlayed >= total
                     if (season.resultsRevealed) {

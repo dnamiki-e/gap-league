@@ -20,6 +20,12 @@ interface Team {
 
 interface DragDropPredictProps {
   teams: Team[]
+  /**
+   * 並べる枠の数。省略すると参加チーム全部。
+   * CL のリーグフェーズのように「36チームのうち上位8位だけ予想する」場合に
+   * チーム数より少ない値が入る。余ったチームは候補リストに残る。
+   */
+  slots?: number
   initialPrediction: Array<{ teamId: string; predictedRank: number; comment?: string | null }> | null
   seasonId: string
   isLocked: boolean
@@ -28,14 +34,17 @@ interface DragDropPredictProps {
 
 export default function DragDropPredict({
   teams,
+  slots,
   initialPrediction,
   seasonId,
   isLocked,
   onSave,
 }: DragDropPredictProps) {
-  // リーグごとにチーム数が異なる（プレミア/ラ・リーガ/セリエA=20, ブンデス/リーグアン=18）
-  const size = teams.length
-  const [ranked, setRanked] = useState<(Team | null)[]>(() => Array(teams.length).fill(null))
+  // リーグごとに枠数が異なる（各国リーグ=参加チーム数、CL リーグフェーズ=上位8位）
+  const size = Math.min(slots ?? teams.length, teams.length)
+  const [ranked, setRanked] = useState<(Team | null)[]>(() =>
+    Array(Math.min(slots ?? teams.length, teams.length)).fill(null)
+  )
   const [unranked, setUnranked] = useState<Team[]>([])
   const [comments, setComments] = useState<Record<string, string>>({})
   const [commentOpen, setCommentOpen] = useState<Set<string>>(new Set())
@@ -241,7 +250,10 @@ export default function DragDropPredict({
           <span className={placedCount === size ? "text-[#4ade80] font-semibold" : "text-[#fbbf24]"}>
             {placedCount}
           </span>
-          <span> / {size} チーム配置済み</span>
+          <span>
+            {" "}/ {size} チーム配置済み
+            {size < teams.length && `（候補 ${teams.length} チーム）`}
+          </span>
         </div>
         {!isLocked && (
           <div className="flex items-center gap-3 flex-wrap">

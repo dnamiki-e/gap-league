@@ -1,3 +1,5 @@
+import { leagueName } from "@/lib/leagues"
+
 export interface StaticTeam {
   id: string // used as value in select (format: "static-{leagueCode}-{tla}")
   name: string
@@ -14,10 +16,10 @@ export interface LeagueGroup {
   teams: StaticTeam[]
 }
 
-const LEAGUES: { code: string; name: string; teams: [string, string, string][] }[] = [
+// 推しクラブ選択用の静的ロスター。表示名は lib/leagues.ts が正本なので持たない。
+const LEAGUE_ROSTERS: { code: string; teams: [string, string, string][] }[] = [
   {
     code: "PL",
-    name: "プレミアリーグ（イングランド）",
     teams: [
       ["Arsenal", "Arsenal", "ARS"],
       ["Aston Villa", "Aston Villa", "AVL"],
@@ -43,7 +45,6 @@ const LEAGUES: { code: string; name: string; teams: [string, string, string][] }
   },
   {
     code: "PD",
-    name: "ラ・リーガ（スペイン）",
     teams: [
       ["Athletic Club", "Athletic", "ATH"],
       ["Atlético de Madrid", "Atlético", "ATM"],
@@ -69,7 +70,6 @@ const LEAGUES: { code: string; name: string; teams: [string, string, string][] }
   },
   {
     code: "BL1",
-    name: "ブンデスリーガ（ドイツ）",
     teams: [
       ["FC Augsburg", "Augsburg", "AUG"],
       ["Bayer 04 Leverkusen", "Leverkusen", "B04"],
@@ -93,7 +93,6 @@ const LEAGUES: { code: string; name: string; teams: [string, string, string][] }
   },
   {
     code: "FL1",
-    name: "リーグ・アン（フランス）",
     teams: [
       ["Angers SCO", "Angers", "ANG"],
       ["AJ Auxerre", "Auxerre", "AJA"],
@@ -117,7 +116,6 @@ const LEAGUES: { code: string; name: string; teams: [string, string, string][] }
   },
   {
     code: "SA",
-    name: "セリエA（イタリア）",
     teams: [
       ["Atalanta BC", "Atalanta", "ATA"],
       ["Bologna FC 1909", "Bologna", "BOL"],
@@ -143,16 +141,16 @@ const LEAGUES: { code: string; name: string; teams: [string, string, string][] }
   },
 ]
 
-export const LEAGUE_GROUPS: LeagueGroup[] = LEAGUES.map((league) => ({
+export const LEAGUE_GROUPS: LeagueGroup[] = LEAGUE_ROSTERS.map((league) => ({
   code: league.code,
-  name: league.name,
+  name: leagueName(league.code),
   teams: league.teams.map(([name, shortName, tla]) => ({
     id: `static-${league.code}-${tla}`,
     name,
     shortName,
     tla,
     leagueCode: league.code,
-    leagueName: league.name,
+    leagueName: leagueName(league.code),
     crestUrl: null,
   })),
 }))
