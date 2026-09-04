@@ -73,7 +73,6 @@ GRANT ALL PRIVILEGES ON DATABASE gap_league TO gap;
 | `ADMIN_EMAILS` | 空 | Google ログインで自動的に管理者にするアドレス（カンマ区切り） |
 | `CRON_SECRET` | 空 | 自動同期の合言葉。未設定だと `/api/cron/sync` は 503 |
 | `SOCCER_CRAWLER_BASE_URL` / `SOCCER_CRAWLER_API_KEY` | 空 | 中継サーバ経由で取る場合のみ（[docs/DATA_SOURCE.md](DATA_SOURCE.md)） |
-| `NEXT_PUBLIC_FOOTBALL_INFO_URL` | 空 | 日程・順位表を持つ別サイトへのリンク先。未設定なら出ない |
 
 ### 管理者を作る変数が2つある理由
 

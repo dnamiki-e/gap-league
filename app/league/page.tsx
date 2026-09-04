@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import AppShell from "@/components/AppShell"
-import FootballInfoLink from "@/components/FootballInfoLink"
 import { LeagueHeader } from "@/components/LeagueHeader"
 import LeagueSeasonPills from "@/components/LeagueSeasonPills"
 import { pageClass } from "@/lib/ui"
@@ -100,8 +99,6 @@ export default async function LeagueScorersPage({ searchParams }: PageProps) {
             </>
           )}
         </div>
-
-        <FootballInfoLink />
       </div>
     </AppShell>
   )
