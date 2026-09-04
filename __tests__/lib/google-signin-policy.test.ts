@@ -7,18 +7,18 @@ const ACTIVE_GOOGLE_USER = { isActive: true, passwordHash: null, hasGoogleAccoun
 
 describe("rejectGoogleSignInReason", () => {
   it("開放構成では未登録アドレスでも通る", () => {
-    expect(rejectGoogleSignInReason("new@gmail.com", null, OPEN)).toBeNull()
+    expect(rejectGoogleSignInReason("new@example.net", null, OPEN)).toBeNull()
   })
 
   it("招待制では未登録アドレスを拒否する", () => {
-    expect(rejectGoogleSignInReason("new@gmail.com", null, INVITE_ONLY)).toBe(
+    expect(rejectGoogleSignInReason("new@example.net", null, INVITE_ONLY)).toBe(
       "invitation-required"
     )
   })
 
   it("招待制でも、管理者が先に登録したアドレスは通る", () => {
     expect(
-      rejectGoogleSignInReason("invited@gmail.com", { isActive: true, passwordHash: null, hasGoogleAccount: false }, INVITE_ONLY)
+      rejectGoogleSignInReason("invited@example.net", { isActive: true, passwordHash: null, hasGoogleAccount: false }, INVITE_ONLY)
     ).toBeNull()
   })
 
@@ -32,24 +32,24 @@ describe("rejectGoogleSignInReason", () => {
   })
 
   it("既存ユーザーは招待制でも通り続ける", () => {
-    expect(rejectGoogleSignInReason("member@gmail.com", ACTIVE_GOOGLE_USER, INVITE_ONLY)).toBeNull()
+    expect(rejectGoogleSignInReason("member@example.net", ACTIVE_GOOGLE_USER, INVITE_ONLY)).toBeNull()
   })
 
   it("無効化されたユーザーは拒否する", () => {
     expect(
-      rejectGoogleSignInReason("banned@gmail.com", { ...ACTIVE_GOOGLE_USER, isActive: false }, OPEN)
+      rejectGoogleSignInReason("banned@example.net", { ...ACTIVE_GOOGLE_USER, isActive: false }, OPEN)
     ).toBe("user-deactivated")
   })
 
   it("パスワード登録済み・Google未紐付けは自動統合させない", () => {
     expect(
-      rejectGoogleSignInReason("squatted@gmail.com", { isActive: true, passwordHash: "hash", hasGoogleAccount: false }, OPEN)
+      rejectGoogleSignInReason("squatted@example.net", { isActive: true, passwordHash: "hash", hasGoogleAccount: false }, OPEN)
     ).toBe("password-account-exists")
   })
 
   it("既に Google が紐付いているなら、パスワードを持っていても通る", () => {
     expect(
-      rejectGoogleSignInReason("both@gmail.com", { isActive: true, passwordHash: "hash", hasGoogleAccount: true }, OPEN)
+      rejectGoogleSignInReason("both@example.net", { isActive: true, passwordHash: "hash", hasGoogleAccount: true }, OPEN)
     ).toBeNull()
   })
 

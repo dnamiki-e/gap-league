@@ -46,6 +46,7 @@ docker compose up -d           # PostgreSQL を起動
 #    DATABASE_URL=postgresql://gap:gap@localhost:5432/gap_league
 
 # 4. スキーマ適用 & 初期管理者作成
+npx prisma generate            # Prisma Client を生成（npm install 時にも自動実行）
 npx prisma migrate deploy      # テーブル作成
 npm run seed                   # ADMIN_EMAIL/ADMIN_INITIAL_PASSWORD から管理者を投入
 
