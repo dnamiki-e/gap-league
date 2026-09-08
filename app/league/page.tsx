@@ -4,9 +4,11 @@ import { redirect } from "next/navigation"
 import AppShell from "@/components/AppShell"
 import { LeagueHeader } from "@/components/LeagueHeader"
 import LeagueSeasonPills from "@/components/LeagueSeasonPills"
+import TeamCrest from "@/components/TeamCrest"
 import { pageClass } from "@/lib/ui"
 import { getLeagueSeasons, pickSeason } from "@/lib/seasons"
 import { fetchScorers, type Scorer } from "@/lib/league-data"
+import { prisma } from "@/lib/prisma"
 
 interface PageProps {
   searchParams: Promise<{ seasonId?: string }>
@@ -35,11 +37,75 @@ export default async function LeagueScorersPage({ searchParams }: PageProps) {
     }
   }
 
+  const standings = selectedSeason
+    ? await prisma.standing.findMany({
+        where: { seasonId: selectedSeason.id },
+        include: { team: true },
+        orderBy: { actualRank: "asc" },
+      })
+    : []
+
   return (
     <AppShell title="リーグ">
       <div className={pageClass("wide", "space-y-6")}>
         <LeagueHeader leagueCode={selectedSeason?.leagueCode} />
         <LeagueSeasonPills seasons={seasons} selectedId={selectedSeason?.id} basePath="/league" />
+
+        <div className="bg-[#1a1f2e] rounded-2xl border border-white/10 p-6 space-y-4">
+          <div className="flex items-baseline justify-between flex-wrap gap-2">
+            <h2 className="text-lg font-bold text-[#f1f5f9]">順位表</h2>
+            <span className="text-sm text-[#94a3b8]">{selectedSeason?.name ?? ""}</span>
+          </div>
+
+          {standings.length === 0 ? (
+            <p className="py-10 text-center text-[#94a3b8] text-sm">
+              このシーズンの順位データはまだありません
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm border-collapse">
+                <thead>
+                  <tr className="text-[#94a3b8] border-b border-white/10">
+                    <th className="pb-2 pr-3 text-right w-10 whitespace-nowrap">#</th>
+                    <th className="pb-2 px-3 text-left min-w-[150px]">チーム</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">試合</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">勝</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">分</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">敗</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">得点</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">失点</th>
+                    <th className="pb-2 px-3 text-right whitespace-nowrap">得失点差</th>
+                    <th className="pb-2 pl-3 text-right whitespace-nowrap">勝点</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((s) => (
+                    <tr key={s.id} className="border-b border-white/5">
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-[#94a3b8]">{s.actualRank}</td>
+                      <td className="py-2.5 px-3 text-[#f1f5f9] font-medium">
+                        <div className="flex items-center gap-2">
+                          <TeamCrest crestUrl={s.team.crestUrl} teamName={s.team.name} size={20} />
+                          <span>{s.team.shortName ?? s.team.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">{s.played}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">{s.won}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">{s.drawn}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">{s.lost}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">{s.goalsFor}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">{s.goalsAgainst}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums text-[#94a3b8]">
+                        {s.goalsFor - s.goalsAgainst > 0 ? "+" : ""}
+                        {s.goalsFor - s.goalsAgainst}
+                      </td>
+                      <td className="py-2.5 pl-3 text-right tabular-nums text-[#f1f5f9] font-bold">{s.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         <div className="bg-[#1a1f2e] rounded-2xl border border-white/10 p-6 space-y-4">
           <div className="flex items-baseline justify-between flex-wrap gap-2">
