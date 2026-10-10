@@ -4,8 +4,9 @@ import { redirect } from "next/navigation"
 import AppShell from "@/components/AppShell"
 import { LeagueHeader } from "@/components/LeagueHeader"
 import LeagueSeasonPills from "@/components/LeagueSeasonPills"
+import SectionNav from "@/components/SectionNav"
 import TeamCrest from "@/components/TeamCrest"
-import { pageClass } from "@/lib/ui"
+import { pageClass, leagueNav } from "@/lib/ui"
 import { getLeagueSeasons, pickSeason } from "@/lib/seasons"
 import { fetchScorers, type Scorer } from "@/lib/league-data"
 import { prisma } from "@/lib/prisma"
@@ -48,6 +49,8 @@ export default async function LeagueScorersPage({ searchParams }: PageProps) {
   return (
     <AppShell title="リーグ">
       <div className={pageClass("wide", "space-y-6")}>
+        {/* セクション内のビュー切替（第2階層）。見出しより上の固定位置に置く */}
+        <SectionNav items={leagueNav(selectedSeason?.id)} />
         <LeagueHeader leagueCode={selectedSeason?.leagueCode} />
         <LeagueSeasonPills seasons={seasons} selectedId={selectedSeason?.id} basePath="/league" />
 

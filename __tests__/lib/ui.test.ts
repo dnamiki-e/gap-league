@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { archiveNav, statsNav, pageClass } from "@/lib/ui"
+import { archiveNav, statsNav, leagueNav, pageClass } from "@/lib/ui"
 
 describe("pageClass", () => {
   it("本文幅は wide / form の2種類に固定される", () => {
@@ -39,5 +39,21 @@ describe("statsNav", () => {
     expect("/stats/timeline".startsWith(`${rate.path}/`)).toBe(true)
     expect(rate.exact).toBe(true)
     expect(timeline.exact).toBeUndefined()
+  })
+})
+
+describe("leagueNav", () => {
+  it("選択中のシーズンを日程⇄順位表の移動でも保つ", () => {
+    expect(leagueNav("s26").map((i) => i.href)).toEqual([
+      "/league?seasonId=s26",
+      "/league/fixtures?seasonId=s26",
+    ])
+  })
+
+  it("/league は完全一致にする（/league/fixtures で2つ同時に点灯させない）", () => {
+    const [table, fixtures] = leagueNav()
+    expect("/league/fixtures".startsWith(`${table.path}/`)).toBe(true)
+    expect(table.exact).toBe(true)
+    expect(fixtures.exact).toBeUndefined()
   })
 })

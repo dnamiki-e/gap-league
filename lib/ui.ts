@@ -76,6 +76,19 @@ export function rankingNav(seasonId?: string, showCompare = true): SectionNavIte
   return items
 }
 
+/**
+ * リーグ・セクション: 現実のリーグを見る切り口を切り替える。
+ *
+ * 「順位表・得点」は /league、「日程」は /league/fixtures。/league は前方一致だと
+ * /league/fixtures でも点灯してしまうので完全一致にする。
+ */
+export function leagueNav(seasonId?: string): SectionNavItem[] {
+  return [
+    { href: withSeason("/league", seasonId), path: "/league", label: "順位表・得点", exact: true },
+    { href: withSeason("/league/fixtures", seasonId), path: "/league/fixtures", label: "日程" },
+  ]
+}
+
 /** 分析セクション: 集計の切り口を切り替える */
 export function statsNav(seasonId?: string): SectionNavItem[] {
   return [
