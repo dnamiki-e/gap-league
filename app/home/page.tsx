@@ -4,6 +4,8 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import AppShell from "@/components/AppShell"
+import FavoriteClubCard, { FavoriteClubPrompt } from "@/components/FavoriteClubCard"
+import { getFavoriteClubFixtures } from "@/lib/favorite-club"
 import { calculateScore } from "@/lib/scoring"
 import { getScorerDeadline } from "@/lib/season-visibility"
 import { getScoringConfig } from "@/lib/site-config"
@@ -33,6 +35,11 @@ export default async function HomePage() {
   if (!session.user.profileSetup) redirect("/profile")
 
   const scoring = await getScoringConfig()
+
+  // 推しクラブの次の試合。推しクラブ未設定の人には設定の案内を出す
+  const now = new Date()
+  const favoriteClubId = session.user.favoriteClubId ?? null
+  const favoriteFixtures = favoriteClubId ? await getFavoriteClubFixtures(favoriteClubId, now) : null
 
   const activeSeason = await prisma.season.findFirst({
     where: { isActive: true },
@@ -150,6 +157,12 @@ export default async function HomePage() {
           </h1>
           <p className="text-[#94a3b8] mt-1 text-sm">最終順位を予想して仲間と競おう</p>
         </div>
+
+        {favoriteClubId ? (
+          favoriteFixtures && <FavoriteClubCard data={favoriteFixtures} now={now} />
+        ) : (
+          <FavoriteClubPrompt />
+        )}
 
         {activeSeason ? (
           <>
