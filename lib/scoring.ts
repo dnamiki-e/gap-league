@@ -21,3 +21,18 @@ export function calculateScore(
     return total + (diff === 0 ? config.exactMatch : diff * config.diffMultiplier)
   }, 0)
 }
+
+/** 順位が完全一致したクラブの数（ピタリ賞カウント） */
+export function countExactMatches(
+  details: Array<{ predictedRank: number; actualRank: number }>
+): number {
+  return details.filter(({ predictedRank, actualRank }) => predictedRank === actualRank).length
+}
+
+/** 最も外したクラブの順位差（1クラブもなければ null） */
+export function maxDiff(
+  details: Array<{ predictedRank: number; actualRank: number }>
+): number | null {
+  if (details.length === 0) return null
+  return Math.max(...details.map(({ predictedRank, actualRank }) => Math.abs(predictedRank - actualRank)))
+}

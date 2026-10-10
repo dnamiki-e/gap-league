@@ -7,7 +7,7 @@ import AppShell from "@/components/AppShell"
 import SectionNav from "@/components/SectionNav"
 import ScorerBoard from "@/components/ScorerBoard"
 import TeamCrest from "@/components/TeamCrest"
-import { calculateScore } from "@/lib/scoring"
+import { calculateScore, countExactMatches, maxDiff } from "@/lib/scoring"
 import { getScorerBoard } from "@/lib/scorer-total"
 import { hasScorerPrediction } from "@/lib/leagues"
 import { getScoringConfig } from "@/lib/site-config"
@@ -64,6 +64,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
     image: string | null
     favoriteClub: { name: string; crestUrl: string | null } | null
     totalPoints: number | null
+    exactMatchCount: number | null
+    maxDiff: number | null
     hasPrediction: boolean
   }
 
@@ -88,6 +90,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
 
     const entries = predictions.map((pred) => {
       let totalPoints: number | null = null
+      let exactMatchCount: number | null = null
+      let worstDiff: number | null = null
       if (standings.length > 0) {
         const scoreDetails = pred.details
           .map((d) => {
@@ -97,6 +101,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
           .filter((d): d is { predictedRank: number; actualRank: number } => d !== null)
         if (scoreDetails.length > 0) {
           totalPoints = calculateScore(scoreDetails, scoring)
+          exactMatchCount = countExactMatches(scoreDetails)
+          worstDiff = maxDiff(scoreDetails)
         }
       }
       return {
@@ -106,6 +112,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
         image: pred.user.image,
         favoriteClub: pred.user.favoriteClub,
         totalPoints,
+        exactMatchCount,
+        maxDiff: worstDiff,
         hasPrediction: true,
       }
     })
@@ -270,6 +278,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
                     <th className="px-4 py-3">ユーザー</th>
                     <th className="px-4 py-3 w-12 text-center hidden sm:table-cell">クラブ</th>
                     <th className="px-4 py-3 text-right">スコア</th>
+                    <th className="px-4 py-3 text-right hidden sm:table-cell">ピタリ</th>
+                    <th className="px-4 py-3 text-right hidden lg:table-cell">最大ズレ</th>
                     <th className="px-4 py-3 text-right hidden md:table-cell">詳細</th>
                   </tr>
                 </thead>
@@ -335,6 +345,24 @@ export default async function RankingPage({ searchParams }: PageProps) {
                             <span className="text-[#94a3b8]/50 text-xs">未予想</span>
                           )}
                         </td>
+                        <td className="px-4 py-3 text-right hidden sm:table-cell">
+                          {entry.exactMatchCount !== null ? (
+                            <span className={`font-bold tabular ${entry.exactMatchCount > 0 ? "text-[#4ade80]" : "text-[#94a3b8]"}`}>
+                              {entry.exactMatchCount}
+                            </span>
+                          ) : (
+                            <span className="text-[#94a3b8]/50 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right hidden lg:table-cell">
+                          {entry.maxDiff !== null ? (
+                            <span className={`font-bold tabular ${entry.maxDiff >= 10 ? "text-[#f87171]" : entry.maxDiff >= 5 ? "text-orange-400" : "text-[#94a3b8]"}`}>
+                              {entry.maxDiff}
+                            </span>
+                          ) : (
+                            <span className="text-[#94a3b8]/50 text-xs">-</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right hidden md:table-cell">
                           <Link href={`/ranking/${entry.userId}${selectedSeason ? `?seasonId=${selectedSeason.id}` : ""}`}
                             className="text-xs text-[#38bdf8] hover:underline">
@@ -346,7 +374,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
                   })}
                   {rankingEntries.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-[#94a3b8]">
+                      <td colSpan={7} className="py-12 text-center text-[#94a3b8]">
                         まだ予想がありません
                       </td>
                     </tr>
